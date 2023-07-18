@@ -2,17 +2,25 @@ package memocardbuilder.scenes;
 
 
 import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
 import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.geometry.Point2D;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Cursor;
 import javafx.scene.control.MenuItem;
+import javafx.scene.effect.Bloom;
+import javafx.scene.effect.BlurType;
+import javafx.scene.effect.DropShadow;
+import javafx.scene.effect.Shadow;
 import javafx.scene.image.Image;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.FileChooser;
 import javafx.scene.image.ImageView;
@@ -31,6 +39,11 @@ public class MainSceneController {
     private Point2D firstMousePointWhenMoving;
 
     private Rectangle rectangle = null;
+
+    //relation between height and width
+    private final float IMG_HEIGHT = 3;
+    private final float IMG_WIDTH = 2;
+
 
 
 
@@ -51,7 +64,28 @@ public class MainSceneController {
     @FXML
     private AnchorPane anchorCenterPane;
 
-    private float zoomImage = 1;
+    private ChangeListener<Number> horizontalScrollBarListener = (obs, oldV, newV) -> {
+        double horizontalRange = imageView.getImage().getWidth() - imageView.getViewport().getWidth();
+        Rectangle2D oldViewport= imageView.getViewport();
+        imageView.setViewport(new Rectangle2D (
+                newV.floatValue() / 100 * horizontalRange,
+                oldViewport.getMinY(),
+                oldViewport.getWidth(),
+                oldViewport.getHeight()
+        ));
+    };
+
+    private ChangeListener<Number> verticalScrollBarListener = (obs, oldV, newV) -> {
+        double verticalRange = imageView.getImage().getWidth() - imageView.getViewport().getWidth();
+        Rectangle2D oldViewport= imageView.getViewport();
+        imageView.setViewport(new Rectangle2D (
+                oldViewport.getMinX(),
+                newV.floatValue() / 100 * verticalRange,
+                oldViewport.getWidth(),
+                oldViewport.getHeight()
+        ));
+    };
+
 
     @FXML
     void initialize() {
@@ -62,6 +96,8 @@ public class MainSceneController {
         imageView.fitHeightProperty().bind(anchorCenterPane.heightProperty().map(height -> height.floatValue() -5));
 
         loadImage("file:/home/xevi/Imatges/gatotRevoy.png");
+
+
 
 
 
@@ -81,8 +117,6 @@ public class MainSceneController {
                 "*.png", "*.jpg", "*.jpeg"));
         File file = fc.showOpenDialog( ((MenuItem) event.getTarget()).getParentPopup().getOwnerWindow());
 
-
-
         if (file != null) {
             try {
                 loadImage(file.toURI().toURL().toString());
@@ -100,9 +134,9 @@ public class MainSceneController {
     @FXML
     void imageClicked(MouseEvent event) {
 
-    //ImageView coordinates:    new Point2D (event.getX(), event.getY())
-    //image coordinates:        fromImageViewToImageCoordinates(new Point2D (event.getX(), event.getY()))
-    //Pane coordinates:         new Point2D(imageView.getLayoutX() + event.getX(), imageView.getLayoutY() + event.getX())
+    //ImageView coordinates:    new Point2D (event.getX(), event.getY());
+    //image coordinates         fromImageViewToImageCoordinates(new Point2D (event.getX(), event.getY()));
+    //Pane coordinates:         new Point2D(imageView.getLayoutX() + event.getX(), imageView.getLayoutY() + event.getX());
 
     }
 
@@ -112,10 +146,11 @@ public class MainSceneController {
     void imageViewMouseDragged(MouseEvent event) {
 
         if (event.isControlDown()) {
-            drawRectangle (new Point2D (event.getX(), event.getY()));
+            drawRectangle (new Point2D (imageView.getLayoutX() + event.getX(), imageView.getLayoutY() + event.getY()));
         } else { //TODO
             moveImage(firstMousePointWhenMoving,
                     fromImageViewToImageCoordinates(new Point2D(event.getX(), event.getY())));
+            setScrollBarValues();
         }
     }
 
@@ -124,24 +159,62 @@ public class MainSceneController {
      * @param mousePosition
      */
     private void drawRectangle(Point2D mousePosition) {
+
+        double width = mousePosition.getX() - firstMousePointWhenMoving.getX();
+        double height = mousePosition.getY() - firstMousePointWhenMoving.getY();
+
+        if (IMG_WIDTH/IMG_HEIGHT > Math.abs(width/height)) {
+            if (width < 0) {
+                width = Math.abs(height * IMG_WIDTH/IMG_HEIGHT)*(-1);
+            } else {
+                width = Math.abs(height * IMG_WIDTH/IMG_HEIGHT);
+            }
+
+        } else if (IMG_WIDTH/IMG_HEIGHT < Math.abs(width/height)){
+            if (height < 0) {
+                height = Math.abs(width * IMG_HEIGHT / IMG_WIDTH) * (-1);
+            } else {
+                height = Math.abs(width * IMG_HEIGHT / IMG_WIDTH);
+            }
+        }
+
         if (rectangle == null) {
 
             rectangle = new Rectangle(
                     firstMousePointWhenMoving.getX(),
                     firstMousePointWhenMoving.getY(),
-                    mousePosition.getX() - firstMousePointWhenMoving.getX(),
-                    mousePosition.getY() - firstMousePointWhenMoving.getY());//TODO width * relation
+                    width,
+                    height);
 
-            rectangle.setOnMouseDragged(mouseEvent -> {
-                //TODO width *relation
-            });
+            rectangle.getStrokeDashArray().addAll(6.0,12.0);
+            rectangle.setFill(Color.TRANSPARENT);
+            rectangle.setStrokeWidth(2.0);
+            rectangle.setStroke(Color.WHITE);
+            rectangle.setEffect(new DropShadow(4,0,0, Color.BLACK));
 
+            anchorCenterPane.getChildren() .add(rectangle);
+        } else {
+            if (rectangle.getX() + width <= imageView.getX() + getPointRightBottom().getX()
+                    && rectangle.getY() + height <= imageView.getY() + getPointRightBottom().getY()) {
+                rectangle.setWidth(width);
+                rectangle.setHeight(height);
+            }
         }
+
+
     }
 
     @FXML
     void imageViewMousePressed(MouseEvent event) {
-        firstMousePointWhenMoving = fromImageViewToImageCoordinates(new Point2D(event.getX(), event.getY()));
+        if (event.isControlDown()) {
+            if (rectangle != null) {
+                anchorCenterPane.getChildren().remove(rectangle);
+                rectangle = null;
+            }
+            firstMousePointWhenMoving = new Point2D(imageView.getLayoutX() + event.getX(), imageView.getLayoutY() + event.getY());
+        } else {
+            firstMousePointWhenMoving = fromImageViewToImageCoordinates(new Point2D(event.getX(), event.getY()));
+        }
     }
 
     @FXML
@@ -164,7 +237,7 @@ public class MainSceneController {
 
     /**
      * Converts ImageView point to image point
-     * @param imageViewCoordinates
+     * @param imageViewCoordinates the coordinates to convert
      * @return image point
      */
     private Point2D fromImageViewToImageCoordinates (Point2D imageViewCoordinates) {
@@ -212,7 +285,6 @@ public class MainSceneController {
                 newXMax = imageView.getImage().getWidth();
             }
         }
-
         if (newYMin <= 0) {
             newYMax -= newYMin*2;
             newYMin = 0;
@@ -239,6 +311,29 @@ public class MainSceneController {
         yMax = newYMax;
 
         imageView.setViewport(new Rectangle2D(xMin, yMin, xMax, yMax));
+
+        checkScrollBarsVisibility();
+        setScrollBarValues();
+    }
+
+
+    private void checkScrollBarsVisibility() {
+        horizontalScrollBar.setVisible(imageView.getViewport().getMaxX() < imageView.getImage().getWidth());
+        verticalScrollBar.setVisible(imageView.getViewport().getMaxY() < imageView.getImage().getWidth());
+    }
+
+
+    private void setScrollBarValues() {
+        double horizontalRange = imageView.getImage().getWidth() - imageView.getViewport().getWidth();
+        double verticalRange = imageView.getImage().getHeight() - imageView.getViewport().getWidth();
+
+        horizontalScrollBar.valueProperty().removeListener(horizontalScrollBarListener);
+        horizontalScrollBar.setValue(imageView.getViewport().getMinX() / horizontalRange * 100);
+        horizontalScrollBar.valueProperty().addListener(horizontalScrollBarListener);
+
+        verticalScrollBar.valueProperty().removeListener(verticalScrollBarListener);
+        verticalScrollBar.setValue(imageView.getViewport().getMinY() / verticalRange * 100);
+        verticalScrollBar.valueProperty().addListener(verticalScrollBarListener);
 
     }
 
@@ -294,8 +389,6 @@ public class MainSceneController {
         xMax = imageView.getImage().getWidth();
         yMax = imageView.getImage().getHeight();
         imageView.setViewport(new Rectangle2D(0, 0, imageView.getImage().getWidth(), imageView.getImage().getHeight()));
-
-
 
     }
 

@@ -8,13 +8,13 @@ public abstract class Strings {
     private static ResourceBundle stringsBundle = null;
 
     private static void setStrings (String lang) {
-        Locale locale = new Locale (lang == null? "en" : lang);
+        Locale locale =  new Locale.Builder().setLanguage (lang == null? "en" : lang).build();
 
         try {
             //strings folder, strings_xx.properties with locale.
             stringsBundle = ResourceBundle.getBundle("strings.strings", locale);
         } catch (MissingResourceException e) {
-            stringsBundle = ResourceBundle.getBundle("strings.strings", new Locale("en"));
+            stringsBundle = ResourceBundle.getBundle("strings.strings", new Locale.Builder().setLanguage("en").build());
         }
     }
 

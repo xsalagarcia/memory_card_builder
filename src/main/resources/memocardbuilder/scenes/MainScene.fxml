@@ -18,7 +18,7 @@
                 <Menu text="%file">
                   <items>
                         <MenuItem onAction="#openImageAction" text="%open_image" />
-                        <MenuItem disable="true" mnemonicParsing="false" onAction="#saveSelectionAction" text="%save_selection" />
+                        <MenuItem disable="true" onAction="#saveSelectionAction" text="%save_selection" />
                     <MenuItem onAction="#exitAction" text="%exit">
                            <accelerator>
                               <KeyCodeCombination alt="UP" code="X" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
@@ -27,12 +27,12 @@
                 </Menu>
                 <Menu text="%edit">
                   <items>
-                    <MenuItem mnemonicParsing="false" text="Delete" />
+                    <MenuItem text="Delete" />
                   </items>
                 </Menu>
-                <Menu mnemonicParsing="false" text="%help">
+                <Menu text="%help">
                   <items>
-                    <MenuItem mnemonicParsing="false" text="%about" />
+                    <MenuItem text="%about" />
                   </items>
                 </Menu>
               </menus>
@@ -42,8 +42,8 @@
             <AnchorPane fx:id="anchorCenterPane" BorderPane.alignment="CENTER">
                <children>
                   <ImageView fx:id="imageView" onMouseClicked="#imageClicked" onMouseDragged="#imageViewMouseDragged" onMousePressed="#imageViewMousePressed" onMouseReleased="#imageViewMouseReleased" onScroll="#imageMouseScrolled" pickOnBounds="true" preserveRatio="true" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
-                  <ScrollBar fx:id="horizontalScrollBar" opacity="0.5" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="15.0" />
-                  <ScrollBar fx:id="verticalScrollBar" opacity="0.5" orientation="VERTICAL" AnchorPane.bottomAnchor="15.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
+                  <ScrollBar fx:id="horizontalScrollBar" opacity="0.8" visible="false" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="15.0" />
+                  <ScrollBar fx:id="verticalScrollBar" opacity="0.8" orientation="VERTICAL" visible="false" AnchorPane.bottomAnchor="15.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
                </children>
             </AnchorPane>
          </center>
