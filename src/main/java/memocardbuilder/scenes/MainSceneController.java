@@ -4,31 +4,36 @@ package memocardbuilder.scenes;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.geometry.Point2D;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Cursor;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.MenuItem;
-import javafx.scene.effect.Bloom;
-import javafx.scene.effect.BlurType;
 import javafx.scene.effect.DropShadow;
-import javafx.scene.effect.Shadow;
 import javafx.scene.image.Image;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.shape.StrokeType;
 import javafx.stage.FileChooser;
 import javafx.scene.image.ImageView;
 import javafx.scene.control.ScrollBar;
+import javafx.stage.Stage;
 import memocardbuilder.Strings;
 
+import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
 import java.net.MalformedURLException;
+import javafx.embed.swing.SwingFXUtils;
+
+import javax.imageio.ImageIO;
 
 public class MainSceneController {
 
@@ -38,13 +43,16 @@ public class MainSceneController {
     /**For moving function*/
     private Point2D firstMousePointWhenMoving;
 
+    /**For moving function*/
+    private Point2D firstRectanglePointWhenMoving;
+
     private Rectangle rectangle = null;
 
     //relation between height and width
     private final float IMG_HEIGHT = 3;
     private final float IMG_WIDTH = 2;
 
-
+    private File initialDirectory = null;
 
 
     @FXML
@@ -53,16 +61,18 @@ public class MainSceneController {
     @FXML
     private BorderPane borderPane;
 
-
     @FXML
     private ScrollBar verticalScrollBar;
 
     @FXML
     private ScrollBar horizontalScrollBar;
 
-
     @FXML
     private AnchorPane anchorCenterPane;
+
+    @FXML
+    private MenuItem saveMenuItem;
+
 
     private ChangeListener<Number> horizontalScrollBarListener = (obs, oldV, newV) -> {
         double horizontalRange = imageView.getImage().getWidth() - imageView.getViewport().getWidth();
@@ -90,19 +100,27 @@ public class MainSceneController {
     @FXML
     void initialize() {
 
-
         //Binds imageView size to anchorCenterPane
         imageView.fitWidthProperty().bind(anchorCenterPane.widthProperty().map(width -> width.floatValue() -5));
         imageView.fitHeightProperty().bind(anchorCenterPane.heightProperty().map(height -> height.floatValue() -5));
 
-        loadImage("file:/home/xevi/Imatges/gatotRevoy.png");
-
-
-
-
-
     }
 
+    @FXML
+    void cardBuilderHelpAction(ActionEvent event) {
+        FXMLLoader fxmll = new FXMLLoader(getClass().getResource("HelpScene.fxml"),
+                Strings.getStrings());
+        try {
+            Parent root = fxmll.load();
+
+            Stage stage = new Stage();
+            stage.setScene(new Scene (root));
+            stage.setTitle(Strings.get("help"));
+            stage.show();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     @FXML
     void exitAction(ActionEvent event) {
@@ -128,7 +146,45 @@ public class MainSceneController {
 
     @FXML
     void saveSelectionAction(ActionEvent event) {
+        //BufferedImage
+        //bufferedImage.getSubImage
+        BufferedImage bufferedImage = SwingFXUtils.fromFXImage(imageView.getImage(), null);
 
+        Point2D leftSup = fromImageViewToImageCoordinates(new Point2D(rectangle.getX(), rectangle.getY()));
+        Point2D rightBottom = fromImageViewToImageCoordinates(new Point2D(
+                    rectangle.getX() + rectangle.getWidth(),
+                    rectangle.getY() + rectangle.getHeight()));
+
+        BufferedImage selectedBufferedImage = bufferedImage.getSubimage(
+                (int)leftSup.getX(),
+                (int)leftSup.getY(),
+                (int)(rightBottom.getX() - leftSup.getX()),
+                (int)(rightBottom.getY() - leftSup.getY()));
+
+        FileChooser fc = new FileChooser();
+        fc.setTitle(Strings.get("save_selection"));
+        fc.getExtensionFilters().add(new FileChooser.ExtensionFilter(Strings.get("png_file"),
+                "*.png"));
+        fc.setInitialFileName(Strings.get("default_filename"));
+        fc.setInitialDirectory(initialDirectory != null? initialDirectory : new File(System.getProperty("user.home")));
+        File fileToSave = fc.showSaveDialog(saveMenuItem.getParentPopup().getOwnerWindow());
+
+        if (fileToSave != null) {
+
+            initialDirectory = fileToSave.getParentFile();
+
+            if (!fileToSave.getName().endsWith(".png")) {
+                fileToSave = new File(fileToSave.toString() + ".png");
+
+            }
+
+            try {
+                ImageIO.write(selectedBufferedImage, "png", fileToSave);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
+        }
     }
 
     @FXML
@@ -137,6 +193,8 @@ public class MainSceneController {
     //ImageView coordinates:    new Point2D (event.getX(), event.getY());
     //image coordinates         fromImageViewToImageCoordinates(new Point2D (event.getX(), event.getY()));
     //Pane coordinates:         new Point2D(imageView.getLayoutX() + event.getX(), imageView.getLayoutY() + event.getX());
+
+
 
     }
 
@@ -147,7 +205,7 @@ public class MainSceneController {
 
         if (event.isControlDown()) {
             drawRectangle (new Point2D (imageView.getLayoutX() + event.getX(), imageView.getLayoutY() + event.getY()));
-        } else { //TODO
+        } else {
             moveImage(firstMousePointWhenMoving,
                     fromImageViewToImageCoordinates(new Point2D(event.getX(), event.getY())));
             setScrollBarValues();
@@ -180,19 +238,15 @@ public class MainSceneController {
 
         if (rectangle == null) {
 
-            rectangle = new Rectangle(
+            this.setNewRectangle(
                     firstMousePointWhenMoving.getX(),
                     firstMousePointWhenMoving.getY(),
                     width,
                     height);
 
-            rectangle.getStrokeDashArray().addAll(6.0,12.0);
-            rectangle.setFill(Color.TRANSPARENT);
-            rectangle.setStrokeWidth(2.0);
-            rectangle.setStroke(Color.WHITE);
-            rectangle.setEffect(new DropShadow(4,0,0, Color.BLACK));
+            saveMenuItem.setDisable(false);
 
-            anchorCenterPane.getChildren() .add(rectangle);
+
         } else {
             if (rectangle.getX() + width <= imageView.getX() + getPointRightBottom().getX()
                     && rectangle.getY() + height <= imageView.getY() + getPointRightBottom().getY()) {
@@ -260,6 +314,27 @@ public class MainSceneController {
                     imageViewCoordinates.getX() * imageMaxHeight/resizedMaxHeight + imageView.getViewport().getMinX(),
                     imageViewCoordinates.getY() * imageMaxHeight/resizedMaxHeight + imageView.getViewport().getMinY()
             );
+
+        }
+    }
+
+    private Point2D fromCenterPaneToImageCoordinates(Point2D centerPaneCoordinates) {
+        double imageMaxWidth =  imageView.getViewport().getWidth();
+        double imageMaxHeight = imageView.getViewport().getHeight();
+        double imageRelation = imageMaxHeight / imageMaxWidth;
+        double resizedMaxWidth = imageView.getFitWidth();
+        double resizedMaxHeight = imageView.getFitHeight();
+
+        double imageViewRelation = imageView.getFitHeight() / imageView.getFitWidth();
+
+        if (imageRelation < imageViewRelation) {
+            return new Point2D (
+                    (centerPaneCoordinates.getX() - imageView.getViewport().getMinX()) * resizedMaxWidth/imageMaxWidth,
+                    (centerPaneCoordinates.getY() - imageView.getViewport().getMinY()) * resizedMaxWidth/imageMaxWidth);
+        } else {
+            return new Point2D (
+                    (centerPaneCoordinates.getX() - imageView.getViewport().getMinX()) * resizedMaxHeight/imageMaxHeight,
+                    (centerPaneCoordinates.getY() - imageView.getViewport().getMinY()) * resizedMaxHeight/imageMaxHeight);
 
         }
     }
@@ -392,5 +467,68 @@ public class MainSceneController {
 
     }
 
+    private void rectangleClicked (MouseEvent mouseEvent) {
+        if (mouseEvent.getClickCount() == 2) {
+            saveSelectionAction(null);
+        }
+    }
+
+    private void rectangleMousePressed(MouseEvent mouseEvent) {
+        firstMousePointWhenMoving =
+                new Point2D (mouseEvent.getX(), mouseEvent.getY());
+
+        firstRectanglePointWhenMoving = new Point2D(rectangle.getX(), rectangle.getY());
+
+    }
+
+    private Point2D fromRectangleToCenterPaneCoordinates(Point2D source){
+        return new Point2D (
+                source.getX() + rectangle.getX(),
+                source.getY() + rectangle.getY()
+        );
+    }
+
+
+
+    private void rectangleMouseDragged (MouseEvent mouseEvent) {
+        Point2D newPosition =
+                    new Point2D(
+                        mouseEvent.getX(),
+                        mouseEvent.getY()).subtract(firstMousePointWhenMoving);
+
+        if (firstRectanglePointWhenMoving.getX() + newPosition.getX() > 0
+                && firstRectanglePointWhenMoving.getX() + newPosition.getX() + rectangle.getWidth() < imageView.getFitWidth()) {
+            rectangle.setX(firstRectanglePointWhenMoving.getX() + newPosition.getX());
+
+        }
+
+        if (firstRectanglePointWhenMoving.getY() + newPosition.getY() > 0
+                && firstRectanglePointWhenMoving.getY() + newPosition.getY() + rectangle.getHeight() < imageView.getFitHeight()) {
+            rectangle.setY(firstRectanglePointWhenMoving.getY() + newPosition.getY());
+        }
+
+    }
+
+    private void setNewRectangle(double x, double y, double width, double height) {
+        rectangle = new Rectangle(
+                x,
+                y,
+                width,
+                height);
+
+        rectangle.getStrokeDashArray().addAll(6.0,12.0);
+        rectangle.setFill(Color.TRANSPARENT);
+        rectangle.setStrokeWidth(2.0);
+        rectangle.setStroke(Color.WHITE);
+        rectangle.setEffect(new DropShadow(4,0,0, Color.BLACK));
+        rectangle.setStrokeType(StrokeType.INSIDE);
+
+
+        rectangle.setOnMouseClicked(mouseEvent -> rectangleClicked(mouseEvent));
+        rectangle.setOnMousePressed(mouseEvent -> rectangleMousePressed(mouseEvent));
+        rectangle.setOnMouseDragged(mouseEvent -> rectangleMouseDragged(mouseEvent));
+
+        anchorCenterPane.getChildren().add(rectangle);
+    }
 
 }

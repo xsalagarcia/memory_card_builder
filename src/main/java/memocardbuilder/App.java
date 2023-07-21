@@ -25,7 +25,7 @@ public class App extends Application {
                 Strings.getStrings());
 
         Parent root = fxmll.load();
-        primaryStage.setScene(new Scene(root));
+        primaryStage.setScene(new Scene(root, 800, 600));
         primaryStage.setTitle(Strings.get("app_name"));
         primaryStage.show();
     }

@@ -15,24 +15,27 @@
          <top>
             <MenuBar BorderPane.alignment="CENTER">
               <menus>
-                <Menu text="%file">
+                <Menu text="%file_menu">
                   <items>
-                        <MenuItem onAction="#openImageAction" text="%open_image" />
-                        <MenuItem disable="true" onAction="#saveSelectionAction" text="%save_selection" />
-                    <MenuItem onAction="#exitAction" text="%exit">
+                        <MenuItem onAction="#openImageAction" text="%open_image_menu" />
+                        <MenuItem fx:id="saveMenuItem" disable="true" onAction="#saveSelectionAction" text="%save_selection_menu">
+                           <accelerator>
+                              <KeyCodeCombination alt="UP" code="S" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
+                           </accelerator></MenuItem>
+                    <MenuItem onAction="#exitAction" text="%exit_menu">
                            <accelerator>
                               <KeyCodeCombination alt="UP" code="X" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
                            </accelerator></MenuItem>
                   </items>
                 </Menu>
-                <Menu text="%edit">
+                <Menu text="%help_menu">
                   <items>
-                    <MenuItem text="Delete" />
-                  </items>
-                </Menu>
-                <Menu text="%help">
-                  <items>
-                    <MenuItem text="%about" />
+                        <MenuItem mnemonicParsing="false" onAction="#cardBuilderHelpAction" text="%card_builder_help_menu">
+                           <accelerator>
+                              <KeyCodeCombination alt="UP" code="F1" control="UP" meta="UP" shift="UP" shortcut="UP" />
+                           </accelerator>
+                        </MenuItem>
+                    <MenuItem text="%about_menu" />
                   </items>
                 </Menu>
               </menus>
